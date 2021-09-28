@@ -53,6 +53,13 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+//Deletes URLs on Main Page
+app.post("/urls/:shortURL/delete", (req, res) => {
+  const key = req.params.shortURL;
+  delete urlDatabase[key];
+  res.redirect("/urls");
+
+})
 
 //Listener
 app.listen(PORT, () => {
