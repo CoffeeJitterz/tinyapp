@@ -45,11 +45,26 @@ const authenticateUser = function (email, password, users){
   return false;
 };
 
+//URL DATABASE HELPER FUNCTIONS
+const logURL= function(shortURL, longURL, userID, database){
+  database[shortURL] = {
+    longURL,
+    userID
+  }
+  return shortURL;
+}; 
+
 //DATABASES
 //"Database" for storing the urls
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+      b6UTxQ: {
+        longURL: "https://www.tsn.ca",
+        userID: "aJ48lW"
+    },
+    i3BoGr: {
+        longURL: "https://www.google.ca",
+        userID: "aJ48lW"
+    }
 };
 
 //user database
@@ -80,16 +95,21 @@ app.get("/urls", (req, res) => {
 //New URL Page
 app.get("/urls/new", (req, res) => {
 const templateVars = {user: usersDatabase[req.cookies.user_id]};
+const user = templateVars.user;
+if(!user) {
+  res.redirect("/login")
+  return;
+};
 res.render("urls_new", templateVars);
 });
 
-//Takes longURL, generates shortURL and saves them as key value pair to urlDatabase
+//Takes longURL, generates shortURL and saves the longURL plus the id of the user that made it
 app.post("/urls", (req, res) => {
+  const shortURL = generateRandomString();
   let longURL = req.body.longURL;
   longURL = longURL.startsWith("http") ? longURL : ('http://' + longURL)
-  const shortURL = generateRandomString();
-  urlDatabase[shortURL] = longURL;
-  console.log(urlDatabase);
+  userID = usersDatabase[req.cookies.user_id].id;
+  let urlID = logURL(shortURL, longURL, userID, urlDatabase)
   res.redirect(`/urls/${shortURL}`);
 });
 
