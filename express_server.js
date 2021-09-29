@@ -8,16 +8,63 @@ app.set("view engine", "ejs")
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser ());
 
+//FUNCTIONS
 //random string generator
 function generateRandomString() {
 return Math.random().toString(20).substr(2, 6);
 };
 
+//AUTHENTICATION HELPER FUNCTIONS
+const findUserByEmail = function(email, users) {
+  for (let userID in users) {
+    const user = users[userID];
+    if(email === user.email) {
+      return user;
+    };
+  };
+  return false;
+};
+
+const createUser = function(email, password, users) {
+  const userID = generateRandomString();
+  
+  users[userID] = {
+    id: userID,
+    email,
+    password
+  };
+  return userID
+};
+
+const authenticateUser = function (email, password, users){
+  const userFound = findUserByEmail(email, users);
+  
+  if (userFound && userFound.password === password) {
+    return userFound;
+  };
+  return false;
+};
+
+//DATABASES
 //"Database" for storing the urls
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
+
+//user database
+const usersDatabase = {
+  "userRandomID": {
+    id: "userRandomId",
+    email: "user@example.com",
+    password: "drowssap"
+  },
+  "user2RandomID": {
+    id: "user2RandomId",
+    email: "user2@example.com",
+    password: "drowssap"
+  }
+}
 
 //home page?
 app.get("/", (req, res) => {
@@ -26,13 +73,13 @@ app.get("/", (req, res) => {
 
 //Main Url Page => writes out and displays URL database
 app.get("/urls", (req, res) => {
-  const templateVars = {urls: urlDatabase, username: req.cookies["username"]};
+  const templateVars = {urls: urlDatabase, user: usersDatabase[req.cookies.user_id]};
   res.render("urls_index", templateVars);
 });
 
 //New URL Page
 app.get("/urls/new", (req, res) => {
-const templateVars = {username: req.cookies["username"]};
+const templateVars = {user: usersDatabase[req.cookies.user_id]};
 res.render("urls_new", templateVars);
 });
 
@@ -48,7 +95,7 @@ app.post("/urls", (req, res) => {
 
 //Page which will contain short URL after it's created
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"]};
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: usersDatabase[req.cookies.user_id]};
   res.render("urls_show", templateVars);
 });
 
@@ -73,24 +120,68 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect("/urls");
 });
 
-//username
-app.post("/login", (req, res) => {
-  const user = req.body.username;
-  res.cookie("username", user);
+
+
+
+
+//registration page
+app.get("/register", (req, res) => {
+  const templateVars = {user: null}
+  res.render("urls_register", templateVars);
+})
+
+app.post("/register", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  
+  const userFound = findUserByEmail(email, usersDatabase);
+  
+  if(!email || !password) {
+    res.status(401).send('fields blank')
+  }
+  if (userFound) {
+    res.status(403).send('Sorry, that user already exists');
+    return;
+  }
+  
+  const userID = createUser(email, password, usersDatabase);
+  
+  res.cookie('user_id', userID);
+  
+  //console.log()
+  
   res.redirect("/urls");
+  
+});
+
+//login page
+app.get("/login", (req, res) => {
+  const templateVars = {user: null};
+  res.render("urls_login", templateVars);
+});
+
+app.post("/login", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  
+  const user = authenticateUser(email, password, usersDatabase);
+  console.log(user);
+  
+  if(user) {
+    res.cookie('user_id', user.id);
+    res.redirect("/urls");
+    return;
+  }
+  
+  console.log(usersDatabase);
+  res.status(403).send('Wrong credentials');
 });
 
 //logout
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
-
-//registration page
-app.get("/register", (req, res) => {
-const templateVars = {username: req.cookies["username"]}
-res.render("urls_register", templateVars);
-})
 
 //Listener
 app.listen(PORT, () => {
