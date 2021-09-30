@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
 
 const PORT = 8080; // default port 8080
 const app = express();
@@ -17,10 +18,11 @@ return Math.random().toString(20).substr(2, 6);
 
 //AUTHENTICATION
 //find email in user database
-const findUserByEmail = function(email, users) {
-  for (let userID in users) {
-    const user = users[userID];
-    if(email === user.email) {
+const findUserByEmail = function(email, usersDB) {
+  for (let userID in usersDB) {
+    const user = usersDB[userID];
+    if(email === usersDB[userID].email) {
+      console.log(user);
       return user;
     };
   };
@@ -28,10 +30,10 @@ const findUserByEmail = function(email, users) {
 };
 
 //authenticate user password
-const authenticateUser = function (email, password, users){
-  const user= findUserByEmail(email, users);
+const authenticateUser = function (email, password, usersDB){
+  const user= findUserByEmail(email, usersDB);
   
-  if (user && user.password === password) {
+  if (user && bcrypt.compare(password, user.password)) {
     return user;
   };
   return false;
@@ -40,11 +42,13 @@ const authenticateUser = function (email, password, users){
 //create new user and add to user database
 const createUser = function(email, password, users) {
   const userID = generateRandomString();
-  
+
+  const salt = bcrypt.genSaltSync(10);
+  const hashedPassword = bcrypt.hashSync(password, salt);
   users[userID] = {
     id: userID,
     email,
-    password
+    password: hashedPassword
   };
   return userID
 };
@@ -188,7 +192,7 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 
-//!!REGISTER!!
+//**|o|**REGISTER**|o|**\\
 app.get("/register", (req, res) => {
   const templateVars = {user: null}
   res.render("urls_register", templateVars);
@@ -201,7 +205,7 @@ app.post("/register", (req, res) => {
   const userFound = findUserByEmail(email, usersDatabase);
   
   if(!email || !password) {
-    res.status(401).send('fields blank')
+    res.status(401).send('you left the fields bare!')
   }
   if (userFound) {
     res.status(403).send('Sorry, that user already exists');
@@ -222,7 +226,8 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  
+  //const userID = 
+  console.log(req.body);
   const user = authenticateUser(email, password, usersDatabase);
   
   if(user) {
@@ -249,7 +254,7 @@ app.listen(PORT, () => {
 
 //TO DO
 
-//LOG IN
+//LOG IN *
 //LOG OUT
 //REGISTER
 //CHANGE shortURL to id?
