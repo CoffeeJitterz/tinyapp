@@ -12,7 +12,7 @@
     </div>
     <% if(user){ %>
       
-        <h4>Welcome! <%= email %></h4>
+        <h4>Welcome! <%= user.email %></h4>
       <form class="form-inline" action="/logout" method="POST">
         <button type="submit" class="btn btn-success">Logout</button>
       </form>
