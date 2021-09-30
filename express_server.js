@@ -29,10 +29,10 @@ const findUserByEmail = function(email, users) {
 
 //authenticate user password
 const authenticateUser = function (email, password, users){
-  const userFound = findUserByEmail(email, users);
+  const user= findUserByEmail(email, users);
   
-  if (userFound && userFound.password === password) {
-    return userFound;
+  if (user && user.password === password) {
+    return user;
   };
   return false;
 };
@@ -74,8 +74,8 @@ const urlsForUser = function(userID, urlDatabase){
 
 
 
-//DATABASES
-//url database
+//*******DATABASES*******
+//**url database**
 const urlDatabase = {
       b6UTxQ: {
         longURL: "https://www.tsn.ca",
@@ -87,7 +87,7 @@ const urlDatabase = {
     }
 };
 
-//user database
+//**user database**
 const usersDatabase = {
   "userRandomID": {
     id: "userRandomId",
@@ -117,7 +117,8 @@ app.get("/", (req, res) => {
 app.get("/urls", (req, res) => {
   const userID = req.cookies.user_id;  
   const urls = urlsForUser(userID, urlDatabase)
-  const templateVars = {urls, user: userID};
+  const userEmail = usersDatabase[userID].email;
+  const templateVars = {urls, user: userID, email: userEmail};
   res.render("urls_index", templateVars);
 });
 
@@ -162,7 +163,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
   const userID = req.cookies.user_id;
   
-  if(userID !== urlDatabase[shortURL].userID){
+  if(!userID){
     res.status(403).send('unauthorized to delete');
     return;
   } 
@@ -177,7 +178,7 @@ app.post("/urls/:shortURL", (req, res) => {
   const longURL = req.body.longURL;
   const userID = req.cookies.user_id
 
-  if(userID !== urlDatabase[shortURL].userID){
+  if(!userID){
     res.status(403).send('unauthorized to edit');
     return;
   }
@@ -212,7 +213,7 @@ app.post("/register", (req, res) => {
   
 });
 
-//!!LOGIN!!
+//**LOGIN**
 app.get("/login", (req, res) => {
   const templateVars = {user: null};
   res.render("urls_login", templateVars);
@@ -223,7 +224,6 @@ app.post("/login", (req, res) => {
   const password = req.body.password;
   
   const user = authenticateUser(email, password, usersDatabase);
-  console.log(user);
   
   if(user) {
     res.cookie('user_id', user.id);
@@ -235,7 +235,7 @@ app.post("/login", (req, res) => {
   res.status(403).send('Wrong credentials');
 });
 
-//!!LOGOUT!!
+//**LOGOUT**
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
   res.redirect("/urls");
@@ -245,3 +245,14 @@ app.post("/logout", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+
+//TO DO
+
+//LOG IN
+//LOG OUT
+//REGISTER
+//CHANGE shortURL to id?
+//HELPER FUNCTIONS
+//DELETE
+//EDIT
