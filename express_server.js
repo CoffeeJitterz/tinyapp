@@ -1,3 +1,4 @@
+//requirements\\
 const express = require("express");
 const bodyParser = require("body-parser");
 var cookieSession = require('cookie-session');
@@ -14,8 +15,8 @@ app.use(cookieSession({
 
 
 
-//*******DATABASES*******
-//**url database**
+//*******DATABASES*******\\
+//**urlDatabase**\\
 const urlDatabase = {
       b6UTxQ: {
         longURL: "https://www.tsn.ca",
@@ -27,7 +28,7 @@ const urlDatabase = {
     }
 };
 
-//**user database**
+//**userDatabase**\\
 const usersDatabase = {
   "userRandomId": {
     id: "userRandomId",
@@ -43,7 +44,7 @@ const usersDatabase = {
 
 
 
-//redirect empty / to main page or login 
+//redirect "/" to /urls or /login
 app.get("/", (req, res) => {
   const user = req.session.user_id;
   if (user) {
@@ -53,7 +54,7 @@ app.get("/", (req, res) => {
   }
 });
 
-//Main Url Page 
+// /urls route
 app.get("/urls", (req, res) => {
   const userID = req.session.user_id;  
   const urls = helpers.urlsForUser(userID, urlDatabase)
@@ -62,10 +63,11 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-//New URL Page
+// /urls/new route
 app.get("/urls/new", (req, res) => {
+const user = usersDatabase[req.session.user_id];
 const templateVars = {user: usersDatabase[req.session.user_id]};
-const user = templateVars.user;
+
 if(!user) {
   res.redirect("/login")
   return;
@@ -73,47 +75,47 @@ if(!user) {
 res.render("urls_new", templateVars);
 });
 
-//!!CREATE new url!!
+//***CREATEnewURL***\\
 app.post("/urls", (req, res) => {
-  const shortURL = helpers.generateRandomString();
-  
   let longURL = req.body.longURL;
+  //ternary statment to ensure longURL starts with http://
   longURL = longURL.startsWith("http") ? longURL : ('http://' + longURL);
   const userID = req.session.user_id;
-  let urlID = helpers.logURL(shortURL, longURL, userID, urlDatabase);
+  //logs url in database and returns shortURL
+  let shortURL = helpers.logURL(longURL, userID, urlDatabase);
   res.redirect(`/urls/${shortURL}`);
 });
 
-//Short Url Page
-app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: usersDatabase[req.session.user_id]};
+// urls/:id route
+app.get("/urls/:id", (req, res) => {
+  const templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: usersDatabase[req.session.user_id]};
   res.render("urls_show", templateVars);
 });
 
 //Redirect shortURL to longURL
-app.get("/u/:shortURL", (req, res) => {
+app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL].longURL
   res.redirect(longURL);
 });
 
-//EDIT(update)
-app.post("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  const longURL = req.body.longURL;
+//**EDIT(update)**\\
+app.post("/urls/:id", (req, res) => {
   const userID = req.session.user_id
+  const shortURL = req.params.id;
+  const newLongURL = req.body.longURL;
 
   if(!userID){
     res.status(403).send('unauthorized to edit');
     return;
   }
 
-  urlDatabase[shortURL].longURL = longURL; 
+  urlDatabase[shortURL].longURL = newLongURL; 
   res.redirect("/urls");
 });
 
-//DELETE
-app.post("/urls/:shortURL/delete", (req, res) => {
-  const shortURL = req.params.shortURL;
+//**DELETE**\\
+app.post("/urls/:id/delete", (req, res) => {
+  const shortURL = req.params.id;
   const userID = req.session.user_id;
   
   if(!userID){
@@ -125,7 +127,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 });
 
-//**|o|**REGISTER**|o|**\\
+//**||**REGISTER**||**\\
 app.get("/register", (req, res) => {
   const templateVars = {user: null}
   res.render("urls_register", templateVars);
@@ -134,23 +136,27 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
- 
-  const userFound = helpers.findUserByEmail(email, usersDatabase);
   
+  //search for email and return user or false
+  const user = helpers.findUserByEmail(email, usersDatabase);
+  
+  //if email or password fields are left blank
   if(!email || !password) {
-    res.status(401).send('you left the fields bare!')
+    res.status(401).send('you left the fields blank!')
   }
-  if (userFound) {
+  //if user already exists
+  if (user) {
     res.status(403).send('Sorry, that user already exists');
     return;
   }
+  //create new user and add to userDatabase. Create cookie.
   const userID = helpers.createUser(email, password, usersDatabase);
   req.session.user_id = userID;
   res.redirect("/urls");
   
 });
 
-//**LOGIN**
+//**LOGIN**\\
 app.get("/login", (req, res) => {
   const templateVars = {user: null};
   res.render("urls_login", templateVars);
@@ -160,15 +166,16 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
+  //authenticate user email and password
   const user = helpers.authenticateUser(email, password, usersDatabase);
 
-  if(user) {
-    req.session.user_id = user.id;
-    res.redirect("/urls");
+  if(!user) {
+    res.status(403).send('Wrong credentials');
     return;
   }
+  req.session.user_id = user.id;
+  res.redirect("/urls");
   
-  res.status(403).send('Wrong credentials');
 });
 
 //**LOGOUT**
@@ -182,7 +189,3 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-
-//TO DO
-
-// /urls/new form submit button bug

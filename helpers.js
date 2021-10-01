@@ -46,7 +46,8 @@ function generateRandomString() {
   
   // //URL DATABASE HELPER FUNCTIONS
   //create new url and add to url database
-  const logURL= function(shortURL, longURL, userID, userDB){
+  const logURL= function(longURL, userID, userDB){
+    const shortURL = generateRandomString();
     userDB[shortURL] = {
       longURL,
       userID
